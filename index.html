@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards - Databricks Data Engineer Professional</title>
+    <style>
+        :root {
+            --primary-bg: #f8f9fa;
+            --secondary-bg: #ffffff;
+            --text-color: #212529;
+            --primary-accent: #007bff;
+            --secondary-accent: #6c757d;
+            --border-color: #dee2e6;
+            --must-know-color: #dc3545;
+            --should-know-color: #ffc107;
+            --nice-to-know-color: #28a745;
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .app-container {
+            display: flex;
+            flex: 1;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: var(--secondary-bg);
+            padding: 20px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--primary-accent);
+        }
+
+        .filters,
+        .must-know-checklist,
+        .card-stats {
+            margin-bottom: 20px;
+        }
+
+        .filters h3,
+        .must-know-checklist h3,
+        .card-stats h3 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--primary-accent);
+            padding-bottom: 5px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .must-know-checklist ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .must-know-checklist li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .flashcard-container {
+            width: 100%;
+            max-width: 700px;
+            perspective: 1000px;
+        }
+
+        .card {
+            width: 100%;
+            height: 400px;
+            position: relative;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 10px;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background-color: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .card-front {
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            overflow-y: auto;
+        }
+
+        .back-content {
+            font-size: 1.1rem;
+        }
+
+        .back-content strong {
+            color: var(--primary-accent);
+        }
+
+        .mnemonic {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+            font-style: italic;
+            color: var(--secondary-accent);
+        }
+
+        .example-code {
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-family: "Courier New", Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .exam-tip {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffeeba;
+            font-weight: bold;
+        }
+
+        .mini-debate {
+            margin-top: 15px;
+        }
+
+        .mini-debate details {
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .mini-debate summary {
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .tags-container {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--secondary-accent);
+            color: white;
+            margin-right: 5px;
+            font-size: 0.8rem;
+        }
+
+        .tag.must-know {
+            background-color: var(--must-know-color);
+        }
+
+        .tag.should-know {
+            background-color: var(--should-know-color);
+        }
+
+        .tag.nice-to-know {
+            background-color: var(--nice-to-know-color);
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-accent);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        button.secondary {
+            background-color: var(--secondary-accent);
+        }
+
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .progress-indicator {
+            margin-top: 10px;
+            font-size: 1.1rem;
+            color: var(--secondary-accent);
+        }
+
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: var(--primary-accent);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: 40vh;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                transform: translateY(-100%);
+                position: fixed;
+                top: 0;
+                left: 0;
+                z-index: 99;
+                box-sizing: border-box;
+            }
+
+            .sidebar.open {
+                transform: translateY(0);
+            }
+
+            .main-content {
+                padding-top: 60px;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .card {
+                height: 450px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <button id="sidebarToggle" class="sidebar-toggle">Filtros</button>
+
+    <div class="app-container">
+        <aside class="sidebar" id="sidebar">
+            <h2>Filtros</h2>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="searchText">Buscar no Card:</label>
+                    <input type="text" id="searchText" placeholder="Digite para buscar...">
+                </div>
+                <div class="filter-group">
+                    <label for="priorityFilter">Prioridade:</label>
+                    <select id="priorityFilter">
+                        <option value="">Todas</option>
+                        <option value="must-know">Must-know</option>
+                        <option value="should-know">Should-know</option>
+                        <option value="nice-to-know">Nice-to-know</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="tagFilter">Tags:</label>
+                    <select id="tagFilter">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <button id="resetFilters">Limpar Filtros</button>
+            </div>
+
+            <div class="card-stats" id="cardStats">
+                <h3>Progresso</h3>
+                <p>Conhecidos: <span id="knownCount">0</span></p>
+                <p>Revisar: <span id="reviewCount">0</span></p>
+            </div>
+
+            <div class="must-know-checklist">
+                <h3>Checklist (Must-Know)</h3>
+                <ul id="mustKnowList">
+                </ul>
+            </div>
+            <div class="controls">
+                <button id="exportCsvBtn" class="secondary">Exportar para CSV</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <h1>Flashcards Interativos</h1>
+            <div class="flashcard-container">
+                <div class="card" id="flashcard">
+                </div>
+            </div>
+            <div class="controls">
+                <button id="prevBtn" class="secondary">Anterior</button>
+                <button id="flipBtn">Mostrar Resposta</button>
+                <button id="nextBtn" class="secondary">Próximo</button>
+            </div>
+            <div class="controls">
+                <button id="markKnownBtn">Marcar como 'Conheço'</button>
+                <button id="markReviewBtn">Marcar como 'Quero Revisar'</button>
+            </div>
+            <div class="progress-indicator" id="progressIndicator"></div>
+        </main>
+    </div>
+
+    <script>
+        const flashcardsData = [
+            {
+                "id": "C001",
+                "front": "OPTIMIZE + ZORDER: Finalidade",
+                "back": "Compacta arquivos pequenos (small files) e reordena os dados fisicamente com base em uma ou mais colunas para acelerar consultas. || Mnemônico: OPTIMIZE compacta, ZORDER aproxima.",
+                "example": "OPTIMIZE my_db.my_table ZORDER BY (user_id, event_date)",
+                "tags": ["DeltaLake", "OPTIMIZE", "ZORDER", "Performance", "must-know"],
+                "priority": "must-know",
+                "type": "command",
+                "page_ref": 2,
+                "exam_tip": "ZORDER é mais eficaz em colunas de alta cardinalidade usadas em filtros `WHERE`.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "M001",
+                "front": "Qual join stream-static é INVÁLIDO?",
+                "back": "Um RIGHT OUTER join onde a tabela estática está à esquerda (lado esquerdo do join). O DataFrame de streaming deve estar à esquerda. || Mnemônico: Streaming à esquerda, senão quebra.",
+                "example": "staticDF.join(streamingDF, ['key'], how='right') # Inválido",
+                "tags": ["Streaming", "Joins", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "mcq",
+                "page_ref": 24,
+                "exam_tip": "A prova testa isso trocando `left` e `right`. O lado do streaming importa em outer joins.",
+                "confidence": 5,
+                "mini_debate": {
+                    "correct_option": "A",
+                    "why_correct": "O motor do Structured Streaming não consegue gerenciar o estado de um stream se ele não for o lado 'primário' (esquerdo) em um RIGHT ou FULL OUTER join.",
+                    "why_incorrect": {
+                        "B": "INNER join é permitido com a tabela estática em qualquer um dos lados.",
+                        "C": "LEFT OUTER join é válido quando o streaming DataFrame está à esquerda."
+                    }
+                }
+            },
+            {
+                "id": "F001",
+                "front": "Arquitetura Lakehouse: Definição",
+                "back": "Combina a flexibilidade e escalabilidade de um Data Lake com a performance e garantias ACID de um Data Warehouse. || Mnemônico: Lakehouse = Data Lake + Warehouse.",
+                "example": null,
+                "tags": ["Lakehouse", "Arquitetura", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": 1,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C002",
+                "front": "MERGE INTO: Sintaxe e Finalidade",
+                "back": "Executa operações de 'upsert' (UPDATE, INSERT, DELETE) de forma atômica em uma tabela Delta. || Mnemônico: MERGE decide: atualiza, insere ou apaga.",
+                "example": "MERGE INTO target t USING source s ON t.id = s.id WHEN MATCHED THEN UPDATE SET ... WHEN NOT MATCHed THEN INSERT ...",
+                "tags": ["DeltaLake", "ETL", "DML", "Command", "must-know"],
+                "priority": "must-know",
+                "type": "command",
+                "page_ref": 2,
+                "exam_tip": "Essencial para implementar lógicas de SCD (Slowly Changing Dimensions).",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C003",
+                "front": "VACUUM: O que faz e qual o padrão?",
+                "back": "Remove fisicamente arquivos de dados antigos que não são mais referenciados pela tabela. O período de retenção padrão é de 7 dias. || Mnemônico: VACUUM limpa o passado, mas espera.",
+                "example": "VACUUM my_table RETAIN 24 HOURS",
+                "tags": ["DeltaLake", "VACUUM", "Governança", "must-know"],
+                "priority": "must-know",
+                "type": "command",
+                "page_ref": 2,
+                "exam_tip": "Questões sobre GDPR/LGPD sempre envolvem `DELETE` + `VACUUM` para remoção permanente.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F002",
+                "front": "ACID: O que significa?",
+                "back": "Atomicidade, Consistência, Isolamento, Durabilidade. Garante a confiabilidade das transações em bancos de dados. O Delta Lake traz garantias ACID para o Data Lake. || Mnemônico: ACID garante transações perfeitas.",
+                "example": null,
+                "tags": ["DeltaLake", "ACID", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "fact",
+                "page_ref": 1,
+                "exam_tip": "O 'Isolamento' é a chave para lidar com leituras e escritas concorrentes.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C004",
+                "front": "Auto Loader: Sintaxe básica",
+                "back": "Ingestão de arquivos incremental e escalável. Usa o formato `cloudFiles`. || Mnemônico: Auto Loader vigia a nuvem.",
+                "example": "spark.readStream.format('cloudFiles').option('cloudFiles.format', 'json').load('/path/')",
+                "tags": ["ETL", "Ingestão", "AutoLoader", "Streaming", "must-know"],
+                "priority": "must-know",
+                "type": "command",
+                "page_ref": 3,
+                "exam_tip": "Sempre requer um `schemaLocation` para manter o estado dos arquivos processados.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F003",
+                "front": "Camadas da Arquitetura Medalhão",
+                "back": "Bronze (dados crus), Silver (dados limpos, validados) e Gold (dados agregados, prontos para BI/ML). || Mnemônico: Bronze sujo, Silver limpo, Gold valioso.",
+                "example": null,
+                "tags": ["Lakehouse", "Arquitetura", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": 1,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F004",
+                "front": "Data Skipping: Como funciona?",
+                "back": "O Delta Lake armazena estatísticas (min/max) das 32 primeiras colunas no transaction log. As queries usam essas estatísticas para pular a leitura de arquivos que não contêm os dados relevantes. || Mnemônico: Com estatísticas, Delta pula arquivos.",
+                "example": "SELECT * FROM sales WHERE amount > 5000 /* Delta pula arquivos onde max(amount) < 5000 */",
+                "tags": ["DeltaLake", "Performance", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "fact",
+                "page_ref": 1,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F005",
+                "front": "SCD (Slowly Changing Dimension) Tipo 2",
+                "back": "Preserva o histórico completo das alterações. Quando um valor muda, o registro antigo é marcado como inativo (ex: `is_current=false`) e um novo registro é inserido com os dados atualizados. || Mnemônico: Tipo 2, duas ações: expira e insere.",
+                "example": null,
+                "tags": ["ETL", "DataModeling", "SCD", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 2,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C005",
+                "front": "Time Travel: Como consultar uma versão antiga?",
+                "back": "Permite consultar uma versão passada de uma tabela Delta usando `VERSION AS OF` ou `TIMESTAMP AS OF`. || Mnemônico: Time Travel viaja por versão ou tempo.",
+                "example": "SELECT * FROM my_table VERSION AS OF 5",
+                "tags": ["DeltaLake", "TimeTravel", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 1,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "P001",
+                "front": "Armadilha: `dropDuplicates()` + `append()`",
+                "back": "`dropDuplicates()` remove duplicatas apenas no DataFrame atual (no lote). O modo `append` não verifica duplicatas já existentes na tabela de destino, podendo gerar duplicatas globais. || Mnemônico: `dropDuplicates` é local, não global.",
+                "example": "df.dropDuplicates(['id']).write.mode('append').saveAsTable('target') // Pode duplicar IDs na tabela 'target'",
+                "tags": ["ETL", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "pitfall",
+                "page_ref": 34,
+                "exam_tip": "Para evitar duplicatas globais, a solução correta é quase sempre `MERGE INTO`.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F006",
+                "front": "Cluster de Job vs. Cluster All-Purpose",
+                "back": "Cluster de Job: criado para uma execução de job e terminado ao final. Mais barato, ideal para produção. All-Purpose: para análise interativa e desenvolvimento. Mais caro. || Mnemônico: Job para rodar, All-Purpose para explorar.",
+                "example": null,
+                "tags": ["Databricks", "Clusters", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": 3,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F007",
+                "front": "Change Data Feed (CDF): O que é?",
+                "back": "Permite rastrear alterações em nível de linha (inserts, updates, deletes) entre versões de uma tabela Delta. Precisa ser habilitado explicitamente. || Mnemônico: CDF mostra o que mudou.",
+                "example": "ALTER TABLE my_table SET TBLPROPERTIES (delta.enableChangeDataFeed = true)",
+                "tags": ["DeltaLake", "CDF", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 1,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C006",
+                "front": "Structured Streaming: `trigger(once=True)`",
+                "back": "Processa todos os dados novos disponíveis desde o último gatilho em um único micro-lote e depois para. Transforma um job de streaming em um job de lote incremental. || Mnemônico: `trigger once` é streaming em lote.",
+                "example": "df.writeStream.trigger(once=True).start('/path/')",
+                "tags": ["Streaming", "ETL", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 3,
+                "exam_tip": "Alternativa moderna e mais robusta para jobs em lote incrementais.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F008",
+                "front": "Tabela Gerenciada vs. Tabela Externa (Não Gerenciada)",
+                "back": "Gerenciada: O Databricks gerencia os dados e os metadados. `DROP TABLE` apaga ambos. Externa: O Databricks gerencia apenas os metadados. `DROP TABLE` apaga apenas os metadados, os dados permanecem. || Mnemônico: Externa, dados fora do controle.",
+                "example": "CREATE EXTERNAL TABLE ... LOCATION 's3://path/'",
+                "tags": ["DeltaLake", "Governança", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": 42,
+                "exam_tip": "Uma tabela se torna externa com a palavra-chave `EXTERNAL` ou se for registrada sobre um caminho existente.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C007",
+                "front": "`dbutils.secrets.get()`: Como usar?",
+                "back": "Acessa credenciais e segredos de forma segura a partir de um Databricks Secret Scope. O valor não é exibido em texto plano no output da célula. || Mnemônico: `secrets.get` busca sem mostrar.",
+                "example": "password = dbutils.secrets.get(scope='my_scope', key='my_key')",
+                "tags": ["Databricks", "Segurança", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 3,
+                "exam_tip": "Armadilha: é possível expor o segredo iterando sobre a string e imprimindo caractere por caractere.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F009",
+                "front": "Watermarking em Structured Streaming",
+                "back": "Define um limite de tempo para dados atrasados. Ajuda o motor a descartar estados antigos de agregações, evitando que o estado cresça indefinidamente. || Mnemônico: Watermark limita a espera por atrasados.",
+                "example": "df.withWatermark('event_time', '10 minutes').groupBy(window('event_time', '5 minutes'))",
+                "tags": ["Streaming", "Performance", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 23,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "P002",
+                "front": "Armadilha: Checkpoint Compartilhado",
+                "back": "Cada query de Structured Streaming DEVE ter seu próprio diretório de checkpoint exclusivo. Compartilhar um checkpoint entre dois streams diferentes levará a falhas e corrupção de estado. || Mnemônico: Um stream, um checkpoint.",
+                "example": null,
+                "tags": ["Streaming", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "pitfall",
+                "page_ref": 22,
+                "exam_tip": "Cenários com múltiplos streams escrevendo na mesma tabela são comuns em provas para testar este conceito.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C008",
+                "front": "REST API: Criar um Job",
+                "back": "Uma chamada `POST` para o endpoint `/api/2.0/jobs/create` define um novo job, mas não o executa. Para executar, é necessário usar `/api/2.0/jobs/run-now`. || Mnemônico: `create` define, `run-now` executa.",
+                "example": "POST /api/2.0/jobs/create { 'name': 'My Job', ... }",
+                "tags": ["Databricks", "Jobs", "API", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 30,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F010",
+                "front": "Partition Pruning: O que é?",
+                "back": "Otimização que permite ao Spark ler apenas os subdiretórios (partições) relevantes de uma tabela, com base nos filtros da query. || Mnemônico: Pruning poda as partições.",
+                "example": "SELECT * FROM sales WHERE sale_date = '2023-01-01' /* Lê apenas a partição /sale_date=2023-01-01/ */",
+                "tags": ["Performance", "SparkSQL", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": 2,
+                "exam_tip": "Não funciona se você aplicar uma função na coluna de partição no filtro (ex: `year(sale_date)`).",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C009",
+                "front": "Adicionar uma `CHECK` constraint",
+                "back": "Adiciona uma regra de validação de dados a uma tabela Delta. A operação falhará se qualquer dado já existente na tabela violar a nova constraint. || Mnemônico: `CHECK` valida tudo, até o passado.",
+                "example": "ALTER TABLE my_table ADD CONSTRAINT age_must_be_positive CHECK (age > 0)",
+                "tags": ["DeltaLake", "Governança", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 54,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F011",
+                "front": "Schema Evolution: Como funciona?",
+                "back": "Permite que um job de escrita adicione novas colunas ou altere o tipo de dados de colunas de uma tabela Delta automaticamente, sem falhar. || Mnemônico: Schema Evolution adapta a tabela.",
+                "example": "df.write.option('mergeSchema', 'true').mode('append').save('/path/')",
+                "tags": ["DeltaLake", "Schema", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "fact",
+                "page_ref": 12,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F012",
+                "front": "Problema dos Arquivos Pequenos (Small Files)",
+                "back": "Ocorre quando há um número excessivo de arquivos pequenos em uma tabela, o que degrada a performance de leitura devido à sobrecarga de abertura de arquivos. || Mnemônico: Muitos arquivos pequenos, leitura lenta.",
+                "example": null,
+                "tags": ["Performance", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": "A solução principal é a compactação, usando `OPTIMIZE` ou `Auto Compaction`.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F013",
+                "front": "Broadcast Join: Quando usar?",
+                "back": "Usado para fazer join de uma tabela grande com uma tabela pequena. O Spark envia (broadcast) a tabela pequena para todos os executores, evitando um shuffle caro da tabela grande. || Mnemônico: Tabela pequena, broadcast nela.",
+                "example": "bigDF.join(broadcast(smallDF), 'key')",
+                "tags": ["Performance", "SparkSQL", "Joins", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F014",
+                "front": "Idempotência em pipelines de dados",
+                "back": "A capacidade de um pipeline ser executado várias vezes com a mesma entrada e produzir o mesmo resultado no destino. Essencial para a recuperação de falhas. || Mnemônico: Idempotente, re-execute sem medo.",
+                "example": "Operações `MERGE INTO` são naturalmente idempotentes se a lógica for determinística.",
+                "tags": ["ETL", "Arquitetura", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C010",
+                "front": "COPY INTO: O que é?",
+                "back": "Comando SQL para ingestão de dados idempotente e escalável a partir de armazenamento de arquivos. Alternativa SQL ao Auto Loader. || Mnemônico: `COPY INTO` é o ETL do SQL.",
+                "example": "COPY INTO my_table FROM '/path/' FILEFORMAT = CSV",
+                "tags": ["ETL", "Ingestão", "DatabricksSQL", "Command", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "command",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "P003",
+                "front": "Armadilha: Diagnóstico de Skew",
+                "back": "No Spark UI, um sinal clássico de data skew é uma grande discrepância entre a duração `Median` e `Max` de tarefas em um stage. || Mnemônico: Mediana baixa, Máximo alto, skew de dados.",
+                "example": null,
+                "tags": ["Performance", "Troubleshooting", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "pitfall",
+                "page_ref": 17,
+                "exam_tip": "A solução geralmente envolve salting na chave de join ou repartition.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F015",
+                "front": "Unity Catalog: O que é?",
+                "back": "Solução unificada de governança de dados e IA no Databricks. Fornece controle de acesso centralizado, linhagem de dados, auditoria e descoberta de dados em múltiplos workspaces. || Mnemônico: Unity Catalog unifica a governança.",
+                "example": "GRANT SELECT ON TABLE my_catalog.my_db.my_table TO `account users`",
+                "tags": ["Segurança", "Governança", "UnityCatalog", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F016",
+                "front": "Tamanho ideal de arquivo Delta",
+                "back": "O tamanho ideal de arquivo para tabelas Delta é geralmente entre 128MB e 1GB. Arquivos muito pequenos causam sobrecarga de metadados, enquanto arquivos muito grandes reduzem o paralelismo. || Mnemônico: Nem pequeno, nem grande, tamanho ideal.",
+                "example": null,
+                "tags": ["Performance", "DeltaLake", "Fact", "should-know"],
+                "priority": "should-know",
+                "type": "fact",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C011",
+                "front": "`DESCRIBE EXTENDED`: Utilidade",
+                "back": "Comando SQL que exibe metadados detalhados sobre uma tabela, incluindo comentários de colunas, propriedades da tabela (`TBLPROPERTIES`) e informações de armazenamento. || Mnemônico: `EXTENDED` mostra todos os detalhes.",
+                "example": "DESCRIBE EXTENDED my_catalog.my_db.my_table",
+                "tags": ["DatabricksSQL", "Command", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "command",
+                "page_ref": 63,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "P004",
+                "front": "Armadilha: Localização do Workspace",
+                "back": "O workspace do Databricks deve ser implantado na mesma região da nuvem onde os dados estão armazenados. Caso contrário, haverá custos de transferência de dados entre regiões e alta latência. || Mnemônico: Dados e compute na mesma região.",
+                "example": null,
+                "tags": ["Arquitetura", "Performance", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "pitfall",
+                "page_ref": 50,
+                "exam_tip": "A localização dos desenvolvedores é menos importante que a localização dos dados.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "F017",
+                "front": "`Optimized Write`: O que faz?",
+                "back": "Melhora a performance de escrita, especialmente em tabelas particionadas, reduzindo o número de arquivos escritos. Pode exigir um shuffle extra, mas melhora a performance de leitura subsequente. || Mnemônico: `Optimized Write` escreve menos arquivos.",
+                "example": "spark.conf.set('spark.databricks.delta.optimizeWrite.enabled', True)",
+                "tags": ["Performance", "DeltaLake", "Fact", "should-know"],
+                "priority": "should-know",
+                "type": "fact",
+                "page_ref": null,
+                "exam_tip": "Pode aumentar ligeiramente a latência de escrita em troca de uma melhor performance de leitura.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "M002",
+                "front": "Qual permissão mínima é necessária para iniciar um cluster que foi terminado por inatividade?",
+                "back": "A permissão mínima necessária é `Can Restart`. A permissão `Can Attach To` só permite conectar a um cluster que já está em execução. || Mnemônico: Para ligar, precisa reiniciar.",
+                "example": null,
+                "tags": ["Databricks", "Segurança", "Clusters", "Pitfall", "must-know"],
+                "priority": "must-know",
+                "type": "mcq",
+                "page_ref": 40,
+                "exam_tip": "A prova diferencia 'usar' (Attach To) de 'controlar' (Restart/Manage).",
+                "confidence": 5,
+                "mini_debate": {
+                    "correct_option": "D",
+                    "why_correct": "`Can Restart` concede o direito de alterar o estado do cluster de 'terminado' para 'em execução'.",
+                    "why_incorrect": {
+                        "A": "`Can Manage` é excessiva, pois concede controle total.",
+                        "C": "`Can Attach To` não é suficiente, pois não permite iniciar o cluster."
+                    }
+                }
+            },
+            {
+                "id": "F018",
+                "front": "Transaction Log (`_delta_log`): Papel",
+                "back": "Coração do Delta Lake. É um diretório que contém uma série ordenada de arquivos JSON e Parquet que registram cada transação. É a 'fonte da verdade' que garante ACID. || Mnemônico: Delta = Dados + Log (ACID).",
+                "example": null,
+                "tags": ["DeltaLake", "Arquitetura", "Concept", "must-know"],
+                "priority": "must-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": "Muitas respostas corretas sobre a confiabilidade do Delta Lake mencionam o 'transaction log'.",
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "C012",
+                "front": "Interoperabilidade Python/SQL: Como usar um DataFrame em SQL?",
+                "back": "Registre o DataFrame como uma view temporária. || Mnemônico: DataFrame vira view para SQL usar.",
+                "example": "df.createOrReplaceTempView('my_temp_view')",
+                "tags": ["Databricks", "SparkSQL", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 33,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F019",
+                "front": "SCD (Slowly Changing Dimension) Tipo 1",
+                "back": "Sobrescreve os valores antigos com os novos. Nenhum histórico é mantido na tabela. É a abordagem mais simples. || Mnemônico: Tipo 1, só uma versão: a atual.",
+                "example": null,
+                "tags": ["ETL", "DataModeling", "SCD", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 2,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C013",
+                "front": "`dbutils.widgets.get()`: Como usar?",
+                "back": "Obtém o valor de um widget que foi passado como parâmetro para um notebook, geralmente em um job. || Mnemônico: `widgets.get` pega o parâmetro.",
+                "example": "date_param = dbutils.widgets.get('execution_date')",
+                "tags": ["Databricks", "Jobs", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": 4,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F020",
+                "front": "Delta Sharing: O que é?",
+                "back": "Um protocolo aberto e seguro para compartilhar dados de tabelas Delta Lake com outras organizações, independentemente da plataforma de computação que elas usam. || Mnemônico: Delta Sharing compartilha dados seguro.",
+                "example": null,
+                "tags": ["Governança", "DeltaLake", "Concept", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "P005",
+                "front": "Armadilha: `CREATE TABLE AS SELECT` (CTAS)",
+                "back": "CTAS é uma operação que executa a query UMA VEZ e materializa o resultado. A tabela criada é estática e não reflete futuras alterações nas tabelas de origem. Não é uma view. || Mnemônico: CTAS é foto, não filme.",
+                "example": "CREATE TABLE recent_orders AS SELECT * FROM orders WHERE order_date > '2023-01-01'",
+                "tags": ["SparkSQL", "Pitfall", "should-know"],
+                "priority": "should-know",
+                "type": "pitfall",
+                "page_ref": 26,
+                "exam_tip": "Se a questão pedir uma 'tabela' que se atualiza automaticamente, a resposta é uma `VIEW`, não CTAS.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F021",
+                "front": "Causa de gargalo no Driver",
+                "back": "Geralmente ocorre por uma ação que coleta muitos dados para o nó driver, como `.collect()`, `.toPandas()` em um DataFrame grande, ou broadcast de uma tabela muito grande. || Mnemônico: `collect()` puxa tudo para o driver.",
+                "example": null,
+                "tags": ["Performance", "Troubleshooting", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 8,
+                "exam_tip": "Sintoma no UI: CPU do driver em 100% e dos executores ociosa.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C014",
+                "front": "Habilitar `Optimized Write`",
+                "back": "Pode ser habilitado para a sessão Spark ou como uma propriedade de tabela. || Mnemônico: Habilite `Optimized Write` na sessão ou na tabela.",
+                "example": "SET spark.databricks.delta.optimizeWrite.enabled = true",
+                "tags": ["Performance", "DeltaLake", "Command", "should-know"],
+                "priority": "should-know",
+                "type": "command",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F022",
+                "front": "Formato de Pacote Python suportado",
+                "back": "Databricks suporta nativamente a instalação de pacotes Python a partir de arquivos Wheel (`.whl`). || Mnemônico: Python no Databricks roda sobre Wheels.",
+                "example": null,
+                "tags": ["Databricks", "Bibliotecas", "Fact", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "fact",
+                "page_ref": 49,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F023",
+                "front": "Auto Compaction: O que é?",
+                "back": "Funcionalidade que é executada de forma assíncrona após uma escrita e compacta arquivos pequenos. É uma versão gerenciada e automática do `OPTIMIZE`. || Mnemônico: Auto Compaction otimiza sozinho.",
+                "example": "ALTER TABLE my_table SET TBLPROPERTIES (delta.autoOptimize.autoCompact = true)",
+                "tags": ["Performance", "DeltaLake", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 20,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C015",
+                "front": "Clone de Tabela Delta",
+                "back": "Cria uma cópia de uma tabela Delta em uma versão específica. Pode ser `SHALLOW` (copia apenas metadados) ou `DEEP` (copia metadados e dados). || Mnemônico: Clone copia a tabela, shallow ou deep.",
+                "example": "CREATE TABLE new_table SHALLOW CLONE old_table VERSION AS OF 5",
+                "tags": ["DeltaLake", "Command", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "command",
+                "page_ref": null,
+                "exam_tip": "`SHALLOW CLONE` é ótimo para criar ambientes de desenvolvimento/teste rapidamente.",
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "M003",
+                "front": "Qual configuração de job é ideal para produção em streaming contínuo?",
+                "back": "Cluster: Novo Job Cluster, Retries: Ilimitado, Concurrent Runs: 1. Isso garante baixo custo, resiliência a falhas e evita execuções paralelas indesejadas. || Mnemônico: Job cluster, retries infinitos, uma corrida.",
+                "example": null,
+                "tags": ["Databricks", "Jobs", "Streaming", "must-know"],
+                "priority": "must-know",
+                "type": "mcq",
+                "page_ref": 39,
+                "exam_tip": "A combinação de 'Job Cluster' (custo) e 'Unlimited Retries' (confiabilidade) é a chave.",
+                "confidence": 5,
+                "mini_debate": {
+                    "correct_option": "D",
+                    "why_correct": "Esta configuração oferece o melhor equilíbrio entre custo (Job Cluster), confiabilidade (Unlimited Retries) e previsibilidade (Concurrent Runs: 1).",
+                    "why_incorrect": {
+                        "A": "Concurrent Runs ilimitado pode levar a custos inesperados e problemas de contenção.",
+                        "C": "Usar um cluster All-Purpose para produção é mais caro."
+                    }
+                }
+            },
+            {
+                "id": "F024",
+                "front": "Hierarquia de 3 níveis do Unity Catalog",
+                "back": "A hierarquia é: `CATALOG` -> `SCHEMA` (ou `DATABASE`) -> `TABLE` / `VIEW`. Permite organizar e proteger dados de forma lógica em toda a organização. || Mnemônico: Catálogo contém esquemas, que contêm tabelas.",
+                "example": "USE CATALOG main; USE SCHEMA default; SELECT * FROM my_table;",
+                "tags": ["Segurança", "Governança", "UnityCatalog", "must-know"],
+                "priority": "must-know",
+                "type": "fact",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 5,
+                "mini_debate": null
+            },
+            {
+                "id": "P006",
+                "front": "Armadilha: Filtro em Coluna de Partição",
+                "back": "Aplicar uma função à coluna de partição em uma cláusula `WHERE` (ex: `WHERE year(date_col) = 2023`) impede o `partition pruning`. O filtro deve ser aplicado diretamente ao valor da coluna. || Mnemônico: Função na partição quebra a poda.",
+                "example": "/* Ruim */ WHERE year(date_col) = 2023. /* Bom */ WHERE date_col >= '2023-01-01' AND date_col <= '2023-12-31'",
+                "tags": ["Performance", "SparkSQL", "Pitfall", "should-know"],
+                "priority": "should-know",
+                "type": "pitfall",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F025",
+                "front": "Job de multi-tarefa: Falha Parcial",
+                "back": "Se uma tarefa em um job com múltiplas tarefas falhar, as tarefas que já foram concluídas com sucesso NÃO são revertidas. Seus commits são permanentes. || Mnemônico: Tarefa falhou, o que passou, passou.",
+                "example": null,
+                "tags": ["Databricks", "Jobs", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 6,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F026",
+                "front": "Retenção do Histórico de Execução de Jobs",
+                "back": "O histórico de execução de jobs (logs, outputs) é retido por 60 dias. || Mnemônico: Histórico do job, 60 dias e some.",
+                "example": null,
+                "tags": ["Databricks", "Jobs", "Fact", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "fact",
+                "page_ref": 10,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "C016",
+                "front": "View Dinâmica para Segurança",
+                "back": "Usa funções como `is_member()` ou `current_user()` dentro da definição da `VIEW` para filtrar dados dinamicamente com base em quem está fazendo a consulta. || Mnemônico: View dinâmica filtra por quem vê.",
+                "example": "CREATE VIEW ... AS SELECT ... WHERE group = (CASE WHEN is_member('admin') THEN group ELSE 'public' END)",
+                "tags": ["Segurança", "DatabricksSQL", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F027",
+                "front": "Modelo de Programação do Structured Streaming",
+                "back": "Trata um fluxo de dados como uma tabela ilimitada (unbounded table) na qual novos dados são continuamente adicionados como novas linhas. || Mnemônico: Streaming é uma tabela infinita.",
+                "example": null,
+                "tags": ["Streaming", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": 19,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F028",
+                "front": "SCD (Slowly Changing Dimension) Tipo 3",
+                "back": "Mantém um histórico limitado, adicionando uma nova coluna para armazenar o valor anterior de um campo que mudou. || Mnemônico: Tipo 3, valor antigo na coluna 3.",
+                "example": null,
+                "tags": ["ETL", "DataModeling", "SCD", "Concept", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "concept",
+                "page_ref": 2,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "P007",
+                "front": "Armadilha: `MERGE` sem `WHEN MATCHED`",
+                "back": "Se um comando `MERGE` especificar apenas a cláusula `WHEN NOT MATCHED THEN INSERT`, os registros da fonte que já existem no destino (com base na condição `ON`) serão simplesmente ignorados. || Mnemônico: Sem `MATCHED`, o que já existe é ignorado.",
+                "example": null,
+                "tags": ["DeltaLake", "MERGE", "Pitfall", "should-know"],
+                "priority": "should-know",
+                "type": "pitfall",
+                "page_ref": 15,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F029",
+                "front": "Cache do Spark vs. Cache do Delta",
+                "back": "Cache do Spark (`df.cache()`): armazena o DataFrame em memória/disco no cluster. Cache do Delta: otimização no nó executor que mantém dados de arquivos lidos recentemente em memória para acelerar queries repetidas nos mesmos dados. É automático. || Mnemônico: Spark cache é manual, Delta cache é automático.",
+                "example": null,
+                "tags": ["Performance", "Concept", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F030",
+                "front": "Stateful vs. Stateless Streaming",
+                "back": "Stateless: cada micro-lote é processado de forma independente (ex: `filter`, `select`). Stateful: a operação requer manter informações (estado) entre micro-lotes (ex: `groupBy`, `join`). || Mnemônico: Stateful tem memória, Stateless não.",
+                "example": null,
+                "tags": ["Streaming", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": "Operações stateful exigem checkpointing para tolerância a falhas.",
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C017",
+                "front": "`DESCRIBE HISTORY`: Utilidade",
+                "back": "Exibe o histórico de transações (commits) de uma tabela Delta, incluindo a operação (ex: WRITE, MERGE), o usuário, o timestamp e a versão. || Mnemônico: `HISTORY` mostra o log de commits.",
+                "example": "DESCRIBE HISTORY my_table",
+                "tags": ["DeltaLake", "Command", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "command",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F031",
+                "front": "Políticas de Cluster (Cluster Policies)",
+                "back": "Permitem que os administradores restrinjam as configurações de cluster que os usuários podem criar (ex: tipos de instância, DBR, tags). Usado para controle de custos e padronização. || Mnemônico: Policies são as regras do cluster.",
+                "example": null,
+                "tags": ["Databricks", "Governança", "Segurança", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "P008",
+                "front": "Armadilha: Schema do JSON",
+                "back": "Inferir o schema de JSONs complexos e aninhados pode levar a tipos de dados incorretos. Para pipelines de produção, é uma melhor prática definir o schema manualmente para garantir a qualidade e a consistência dos dados. || Mnemônico: Em produção, defina o schema.",
+                "example": "schema = StructType([...]); spark.read.schema(schema).json('/path/')",
+                "tags": ["ETL", "Pitfall", "should-know"],
+                "priority": "should-know",
+                "type": "pitfall",
+                "page_ref": 12,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "F032",
+                "front": "Adaptive Query Execution (AQE)",
+                "back": "Framework do Spark 3+ que otimiza planos de query em tempo de execução com base em estatísticas de tempo de execução. Pode, por exemplo, otimizar joins e o número de partições de shuffle. || Mnemônico: AQE adapta a query enquanto roda.",
+                "example": null,
+                "tags": ["Performance", "SparkSQL", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "C018",
+                "front": "`RESTORE`: Utilidade",
+                "back": "Restaura uma tabela Delta para uma versão ou timestamp anterior. É a operação que efetivamente 'usa' o Time Travel para reverter alterações. || Mnemônico: `RESTORE` volta a tabela no tempo.",
+                "example": "RESTORE TABLE my_table TO VERSION AS OF 10",
+                "tags": ["DeltaLake", "TimeTravel", "Command", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "command",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F033",
+                "front": "Otimização de `count()`",
+                "back": "Em tabelas Delta, `count(*)` é uma operação de metadados extremamente rápida, pois o número de registros é rastreado no transaction log. Não requer um scan completo dos dados. || Mnemônico: `count` no Delta é só olhar o log.",
+                "example": null,
+                "tags": ["Performance", "DeltaLake", "Fact", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "fact",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "M004",
+                "front": "O que o `Photon` acelera principalmente?",
+                "back": "Photon é um motor de execução vetorizado escrito em C++ que acelera queries SQL e operações de DataFrame. NÃO acelera código Python (UDFs) ou R. || Mnemônico: Photon acelera SQL, não Python.",
+                "example": null,
+                "tags": ["Performance", "Databricks", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "mcq",
+                "page_ref": null,
+                "exam_tip": "Questões sobre performance máxima geralmente envolvem habilitar Photon.",
+                "confidence": 4,
+                "mini_debate": {
+                    "correct_option": "B",
+                    "why_correct": "Acelera a execução de operações do Spark SQL e DataFrames, que são o núcleo de workloads de dados.",
+                    "why_incorrect": {
+                        "A": "Não acelera UDFs Python, que continuam rodando na JVM.",
+                        "C": "Não acelera a inicialização do cluster, mas sim a execução das queries."
+                    }
+                }
+            },
+            {
+                "id": "F034",
+                "front": "Databricks Repos: Finalidade",
+                "back": "Integração Git para notebooks e outros arquivos, permitindo versionamento de código, colaboração (branches, pull requests) e práticas de CI/CD. || Mnemônico: Repos é o Git do Databricks.",
+                "example": null,
+                "tags": ["Databricks", "DevOps", "Concept", "should-know"],
+                "priority": "should-know",
+                "type": "concept",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 4,
+                "mini_debate": null
+            },
+            {
+                "id": "P009",
+                "front": "Armadilha: `display()` e Caching",
+                "back": "Executar uma célula com `display()` várias vezes pode dar uma falsa impressão de performance, pois os resultados podem ser cacheados após a primeira execução. || Mnemônico: `display` repedido, performance enganosa.",
+                "example": null,
+                "tags": ["Performance", "Troubleshooting", "Pitfall", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "pitfall",
+                "page_ref": 9,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            },
+            {
+                "id": "F035",
+                "front": "Criptografia no Databricks",
+                "back": "Os dados em repouso (at rest) no armazenamento em nuvem e no DBFS são sempre criptografados. É possível usar chaves gerenciadas pelo cliente (CMK) para um controle adicional. || Mnemônico: Dados em repouso sempre criptografados.",
+                "example": null,
+                "tags": ["Segurança", "Governança", "Fact", "nice-to-know"],
+                "priority": "nice-to-know",
+                "type": "fact",
+                "page_ref": null,
+                "exam_tip": null,
+                "confidence": 3,
+                "mini_debate": null
+            }
+        ];
+
+        const mustKnowItems = [
+            "Arquitetura Medalhão (Bronze, Silver, Gold)",
+            "`MERGE INTO`",
+            "`OPTIMIZE` e `Z-ORDER`",
+            "`VACUUM` e Retenção de Dados",
+            "Tabela Gerenciada vs. Externa",
+            "Auto Loader vs. `COPY INTO`",
+            "Cluster de Job vs. All-Purpose",
+            "Garantias ACID e o Transaction Log (`_delta_log`)",
+            "Problema dos Arquivos Pequenos (Small Files)",
+            "Broadcast Join",
+            "Partition Pruning",
+            "Diagnóstico de Data Skew no Spark UI",
+            "Armadilha do Checkpoint Compartilhado",
+            "Armadilha `dropDuplicates()` + `append()`",
+            "Unity Catalog (Hierarquia e Governança)",
+            "Permissões de Cluster (`Can Attach To` vs. `Can Restart`)",
+            "Joins Stream-Static Inválidos",
+            "Localização do Workspace vs. Dados",
+            "Configuração de Job para Produção Streaming",
+            "Time Travel (Sintaxe)"
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let allCards = [...flashcardsData];
+
+            // CÓDIGO DE EMBARALHAMENTO ADICIONADO AQUI
+            // Função para embaralhar o array de cards
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    // Escolhe um índice aleatório antes do elemento atual
+                    const j = Math.floor(Math.random() * (i + 1));
+                    // Troca o elemento atual com o elemento aleatório
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            // Embaralha o deck principal de cards assim que a página carrega
+            shuffleArray(allCards);
+            // FIM DO CÓDIGO DE EMBARALHAMENTO
+
+            let filteredCards = [...allCards];
+            let currentIndex = 0;
+
+            let knownCards = new Set();
+            let reviewCards = new Set();
+
+            const cardElement = document.getElementById('flashcard');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const flipBtn = document.getElementById('flipBtn');
+            const progressIndicator = document.getElementById('progressIndicator');
+
+            const searchText = document.getElementById('searchText');
+            const priorityFilter = document.getElementById('priorityFilter');
+            const tagFilter = document.getElementById('tagFilter');
+            const resetFiltersBtn = document.getElementById('resetFilters');
+
+            const markKnownBtn = document.getElementById('markKnownBtn');
+            const markReviewBtn = document.getElementById('markReviewBtn');
+            const knownCountSpan = document.getElementById('knownCount');
+            const reviewCountSpan = document.getElementById('reviewCount');
+
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+
+            const mustKnowList = document.getElementById('mustKnowList');
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+
+
+            function highlightKeywords(text) {
+                const keywords = ['ACID', 'Delta Log', 'ZORDER', 'OPTIMIZE', 'MERGE INTO', 'watermark', 'autoloader', 'schema evolution'];
+                let highlightedText = text;
+                keywords.forEach(keyword => {
+                    const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
+                    highlightedText = highlightedText.replace(regex, '<strong>$1</strong>');
+                });
+                return highlightedText;
+            }
+
+            function renderCard() {
+                if (filteredCards.length === 0) {
+                    cardElement.innerHTML = `<div class="card-face card-front">Nenhum card encontrado com os filtros selecionados.</div>`;
+                    progressIndicator.textContent = '0 / 0';
+                    return;
+                }
+
+                const cardData = filteredCards[currentIndex];
+                const [backText, mnemonic] = cardData.back.split('|| Mnemônico:');
+
+                let backHtml = `
+            <div class="back-content">${highlightKeywords(backText.trim())}</div>
+            <div class="mnemonic"><strong>Mnemônico:</strong> ${mnemonic ? mnemonic.trim() : ''}</div>
+        `;
+
+                if (cardData.example) {
+                    backHtml += `<div class="example-code"><pre><code>${cardData.example}</code></pre></div>`;
+                }
+
+                if (cardData.exam_tip) {
+                    backHtml += `<div class="exam-tip">💡 Dica de Prova: ${cardData.exam_tip}</div>`;
+                }
+
+                if (cardData.type === 'mcq' && cardData.mini_debate) {
+                    let incorrectHtml = '';
+                    for (const [option, reason] of Object.entries(cardData.mini_debate.why_incorrect)) {
+                        incorrectHtml += `<p><strong>Opção ${option}:</strong> ${reason}</p>`;
+                    }
+                    backHtml += `
+                <div class="mini-debate">
+                    <details>
+                        <summary>Análise da Questão</summary>
+                        <p><strong>Opção Correta (${cardData.mini_debate.correct_option}):</strong> ${cardData.mini_debate.why_correct}</p>
+                        ${incorrectHtml}
+                    </details>
+                </div>`;
+                }
+
+                let tagsHtml = cardData.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join(' ');
+
+                cardElement.innerHTML = `
+            <div class="card-face card-front">
+                <div style="flex:1; display:flex; align-items:center;">${highlightKeywords(cardData.front)}</div>
+                <div class="tags-container">${tagsHtml}</div>
+            </div>
+            <div class="card-face card-back">
+                ${backHtml}
+                <div class="tags-container">
+                    <small>Ref. PDF: ${cardData.page_ref !== null ? cardData.page_ref : 'N/A'} | Confiança: ${cardData.confidence}/5</small>
+                </div>
+            </div>
+        `;
+
+                progressIndicator.textContent = `Card ${currentIndex + 1} / ${filteredCards.length}`;
+                cardElement.classList.remove('is-flipped');
+                flipBtn.textContent = 'Mostrar Resposta';
+            }
+
+            function applyFilters() {
+                const search = searchText.value.toLowerCase();
+                const priority = priorityFilter.value;
+                const tag = tagFilter.value;
+
+                filteredCards = allCards.filter(card => {
+                    const matchesSearch = search === '' ||
+                        card.front.toLowerCase().includes(search) ||
+                        card.back.toLowerCase().includes(search);
+                    const matchesPriority = priority === '' || card.priority === priority;
+                    const matchesTag = tag === '' || card.tags.includes(tag);
+                    return matchesSearch && matchesPriority && matchesTag;
+                });
+
+                currentIndex = 0;
+                renderCard();
+            }
+
+            function populateFilters() {
+                const allTags = new Set();
+                allCards.forEach(card => card.tags.forEach(tag => allTags.add(tag)));
+
+                const sortedTags = Array.from(allTags).sort();
+                sortedTags.forEach(tag => {
+                    const option = document.createElement('option');
+                    option.value = tag;
+                    option.textContent = tag;
+                    tagFilter.appendChild(option);
+                });
+            }
+
+            function updateStats() {
+                knownCountSpan.textContent = knownCards.size;
+                reviewCountSpan.textContent = reviewCards.size;
+            }
+
+            function exportToCSV() {
+                let tsvContent = "Front\tBack\tTags\n";
+                filteredCards.forEach(card => {
+                    const front = `"${card.front.replace(/"/g, '""')}"`;
+                    const back = `"${card.back.replace(/"/g, '""')}"`;
+                    const tags = card.tags.join(' ');
+                    tsvContent += `${front}\t${back}\t${tags}\n`;
+                });
+
+                const blob = new Blob([tsvContent], { type: 'text/tab-separated-values;charset=utf-8;' });
+                const link = document.createElement("a");
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "databricks_flashcards.tsv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+
+            // Event Listeners
+            flipBtn.addEventListener('click', () => {
+                cardElement.classList.toggle('is-flipped');
+                flipBtn.textContent = cardElement.classList.contains('is-flipped') ? 'Ocultar Resposta' : 'Mostrar Resposta';
+            });
+
+            nextBtn.addEventListener('click', () => {
+                if (filteredCards.length > 0) {
+                    currentIndex = (currentIndex + 1) % filteredCards.length;
+                    renderCard();
+                }
+            });
+
+            prevBtn.addEventListener('click', () => {
+                if (filteredCards.length > 0) {
+                    currentIndex = (currentIndex - 1 + filteredCards.length) % filteredCards.length;
+                    renderCard();
+                }
+            });
+
+            searchText.addEventListener('input', applyFilters);
+            priorityFilter.addEventListener('change', applyFilters);
+            tagFilter.addEventListener('change', applyFilters);
+
+            resetFiltersBtn.addEventListener('click', () => {
+                searchText.value = '';
+                priorityFilter.value = '';
+                tagFilter.value = '';
+                applyFilters();
+            });
+
+            markKnownBtn.addEventListener('click', () => {
+                if (filteredCards.length > 0) {
+                    const cardId = filteredCards[currentIndex].id;
+                    knownCards.add(cardId);
+                    reviewCards.delete(cardId);
+                    updateStats();
+                    nextBtn.click();
+                }
+            });
+
+            markReviewBtn.addEventListener('click', () => {
+                if (filteredCards.length > 0) {
+                    const cardId = filteredCards[currentIndex].id;
+                    reviewCards.add(cardId);
+                    knownCards.delete(cardId);
+                    updateStats();
+                    nextBtn.click();
+                }
+            });
+
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+
+            exportCsvBtn.addEventListener('click', exportToCSV);
+
+            // Initial load
+            mustKnowItems.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                mustKnowList.appendChild(li);
+            });
+            populateFilters();
+            renderCard();
+        });
+    </script>
