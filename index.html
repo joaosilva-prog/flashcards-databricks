@@ -16,6 +16,7 @@
             --must-know-color: #dc3545;
             --should-know-color: #ffc107;
             --nice-to-know-color: #28a745;
+            --review-color: #17a2b8;
             --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
@@ -88,16 +89,34 @@
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
         }
 
         .must-know-checklist ul {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
 
         .must-know-checklist li {
             padding: 5px 0;
             border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+        }
+
+        .must-know-checklist input[type="checkbox"] {
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .must-know-checklist label {
+            cursor: pointer;
         }
 
         .flashcard-container {
@@ -238,6 +257,7 @@
             font-size: 1rem;
             cursor: pointer;
             transition: background-color 0.3s;
+            flex-grow: 1;
         }
 
         button:hover {
@@ -250,6 +270,14 @@
 
         button.secondary:hover {
             background-color: #5a6268;
+        }
+
+        button.review-btn {
+            background-color: var(--review-color);
+        }
+
+        button.review-btn:hover {
+            background-color: #138496;
         }
 
         .progress-indicator {
@@ -311,7 +339,7 @@
 
 <body>
 
-    <button id="sidebarToggle" class="sidebar-toggle">Filtros</button>
+    <button id="sidebarToggle" class="sidebar-toggle">Filtros e Checklist</button>
 
     <div class="app-container">
         <aside class="sidebar" id="sidebar">
@@ -336,13 +364,16 @@
                         <option value="">Todas</option>
                     </select>
                 </div>
-                <button id="resetFilters">Limpar Filtros</button>
+                <div class="filter-buttons">
+                    <button id="resetFilters" class="secondary">Limpar / Ver Todos</button>
+                    <button id="showReviewBtn" class="review-btn">Ver Revisão</button>
+                </div>
             </div>
 
             <div class="card-stats" id="cardStats">
                 <h3>Progresso</h3>
                 <p>Conhecidos: <span id="knownCount">0</span></p>
-                <p>Revisar: <span id="reviewCount">0</span></p>
+                <p>Para Revisar: <span id="reviewCount">0</span></p>
             </div>
 
             <div class="must-know-checklist">
@@ -1290,23 +1321,17 @@
         document.addEventListener('DOMContentLoaded', () => {
             let allCards = [...flashcardsData];
 
-            // CÓDIGO DE EMBARALHAMENTO ADICIONADO AQUI
-            // Função para embaralhar o array de cards
             function shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
-                    // Escolhe um índice aleatório antes do elemento atual
                     const j = Math.floor(Math.random() * (i + 1));
-                    // Troca o elemento atual com o elemento aleatório
                     [array[i], array[j]] = [array[j], array[i]];
                 }
             }
-
-            // Embaralha o deck principal de cards assim que a página carrega
             shuffleArray(allCards);
-            // FIM DO CÓDIGO DE EMBARALHAMENTO
 
             let filteredCards = [...allCards];
             let currentIndex = 0;
+            let reviewModeActive = false;
 
             let knownCards = new Set();
             let reviewCards = new Set();
@@ -1321,6 +1346,7 @@
             const priorityFilter = document.getElementById('priorityFilter');
             const tagFilter = document.getElementById('tagFilter');
             const resetFiltersBtn = document.getElementById('resetFilters');
+            const showReviewBtn = document.getElementById('showReviewBtn');
 
             const markKnownBtn = document.getElementById('markKnownBtn');
             const markReviewBtn = document.getElementById('markReviewBtn');
@@ -1332,7 +1358,6 @@
 
             const mustKnowList = document.getElementById('mustKnowList');
             const exportCsvBtn = document.getElementById('exportCsvBtn');
-
 
             function highlightKeywords(text) {
                 const keywords = ['ACID', 'Delta Log', 'ZORDER', 'OPTIMIZE', 'MERGE INTO', 'watermark', 'autoloader', 'schema evolution'];
@@ -1346,7 +1371,10 @@
 
             function renderCard() {
                 if (filteredCards.length === 0) {
-                    cardElement.innerHTML = `<div class="card-face card-front">Nenhum card encontrado com os filtros selecionados.</div>`;
+                    let message = reviewModeActive ?
+                        "Nenhum card marcado para revisão." :
+                        "Nenhum card encontrado com os filtros selecionados.";
+                    cardElement.innerHTML = `<div class="card-face card-front">${message}</div>`;
                     progressIndicator.textContent = '0 / 0';
                     return;
                 }
@@ -1407,7 +1435,11 @@
                 const priority = priorityFilter.value;
                 const tag = tagFilter.value;
 
-                filteredCards = allCards.filter(card => {
+                let sourceDeck = reviewModeActive
+                    ? allCards.filter(card => reviewCards.has(card.id))
+                    : allCards;
+
+                filteredCards = sourceDeck.filter(card => {
                     const matchesSearch = search === '' ||
                         card.front.toLowerCase().includes(search) ||
                         card.back.toLowerCase().includes(search);
@@ -1485,6 +1517,16 @@
             tagFilter.addEventListener('change', applyFilters);
 
             resetFiltersBtn.addEventListener('click', () => {
+                reviewModeActive = false;
+                searchText.value = '';
+                priorityFilter.value = '';
+                tagFilter.value = '';
+                applyFilters();
+            });
+
+            showReviewBtn.addEventListener('click', () => {
+                reviewModeActive = true;
+                // Limpar outros filtros para não confundir
                 searchText.value = '';
                 priorityFilter.value = '';
                 tagFilter.value = '';
@@ -1518,12 +1560,19 @@
             exportCsvBtn.addEventListener('click', exportToCSV);
 
             // Initial load
-            mustKnowItems.forEach(item => {
+            mustKnowItems.forEach((item, index) => {
                 const li = document.createElement('li');
-                li.textContent = item;
+                const checkboxId = `must-know-check-${index}`;
+                li.innerHTML = `
+            <input type="checkbox" id="${checkboxId}">
+            <label for="${checkboxId}">${item}</label>
+        `;
                 mustKnowList.appendChild(li);
             });
             populateFilters();
             renderCard();
         });
     </script>
+</body>
+
+</html>
